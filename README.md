@@ -10,6 +10,13 @@ These projects focus on were completed as part of the 4th Year Robotics & Automa
 - Forward/inverse kinematics/dynamics
 - Trajectory planning
 
+## Key Engineering Skills Developed
+- Robot kinematics and spatial reasoning
+- Mathematical modelling of mechanical systems
+- MATLAB programming and simulation
+- Problem solving using matrix methods
+- Interpretation of physical robot motion from mathematical models
+
 ## Repository Structure
 ### Practical 1: Forward Kinematics Analysis
 - Developed forward kinematics model for a robotic manipulator
@@ -42,10 +49,3 @@ These projects focus on were completed as part of the 4th Year Robotics & Automa
 - 📁 [Practical 4: Coordinate Transformations](./Practical_4_Transformations/)
 
 ---
-
-## Key Engineering Skills Developed
-- Robot kinematics and spatial reasoning
-- Mathematical modelling of mechanical systems
-- MATLAB programming and simulation
-- Problem solving using matrix methods
-- Interpretation of physical robot motion from mathematical models
