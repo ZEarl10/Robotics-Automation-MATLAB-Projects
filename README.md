@@ -10,31 +10,38 @@ These projects focus on were completed as part of the 4th Year Robotics & Automa
 - Forward/inverse kinematics/dynamics
 - Trajectory planning
 
-## Practical 1: Forward Kinematics Analysis
+## Repository Structure
+### Practical 1: Forward Kinematics Analysis
 - Developed forward kinematics model for a robotic manipulator
 - Calculated end-effector position using transformation matrices
 - Verified results through MATLAB simulation
+- 📁 [Practical 1: Forward Kinematics](./Practical_1_Forward_Kinematics/)
 
 ---
 
-## Practical 2: Inverse Kinematics
+### Practical 2: Inverse Kinematics
 - Derived joint angles from desired end-effector positions
 - Implemented numerical/analytical solution methods in MATLAB
 - Analysed workspace constraints and singularities
-
+- 📁 [Practical 2: Inverse Kinematics](./Practical_2_Inverse_Kinematics/)
+  
 ---
 
-## Practical 3: Inverse Dynamics
-- Derived joint angles from desired end-effector positions
+### Practical 3: Inverse Dynamics
+- Generates smooth joint-space motion between waypoints
 - Implemented numerical/analytical solution methods in MATLAB
 - Analysed workspace constraints and singularities
+- 📁 [Practical 3: Trajectory Planning](./Practical_3_Trajectory_Planning/)
 
 ---
 
-## Practical 4: Trajectory Planning
+### Practical 4: Trajectory Planning
 - Designed smooth joint-space trajectories between waypoints
-- Implemented polynomial trajectory generation
+- Models spatial relationships using homogeneous transformations
 - Evaluated velocity and acceleration continuity
+- 📁 [Practical 4: Coordinate Transformations](./Practical_4_Transformations/)
+
+---
 
 ## Key Engineering Skills Developed
 - Robot kinematics and spatial reasoning
@@ -42,5 +49,3 @@ These projects focus on were completed as part of the 4th Year Robotics & Automa
 - MATLAB programming and simulation
 - Problem solving using matrix methods
 - Interpretation of physical robot motion from mathematical models
-
-## Repository Structure
