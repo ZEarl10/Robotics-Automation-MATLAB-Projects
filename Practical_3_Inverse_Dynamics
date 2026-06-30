@@ -1,0 +1,86 @@
+%Practical 3 - Robot Inverse Dynamics - Zachary Earl
+clear all; close all; clc
+
+%% Part 1: Joint Torque to random configuration
+% Load the kinova robot
+% Specify the data format as column and gravity -9.81
+kinova = loadrobot('kinovaGen3','DataFormat','column','Gravity',[0 0 -9.81]);
+showdetails(kinova)
+
+% Setup a random configuration, using randomConfiguration command like in
+% lab 2
+q_rand = kinova.randomConfiguration; % The randomConfiguration command generate a random set of joint angle according to the robot specified
+
+% Show the manipulator
+figure
+show(kinova);
+axis([-1,1,-1,1,0,1])
+axis on
+grid on
+
+
+% Gravity torque: computes the joint torques required to hold the robot at
+% a configuration.
+gtau = gravityTorque(kinova, q_rand);
+
+% Joint torques in the random configuration
+tau_1 = gtau
+
+
+%% Part 2: Joint torques given end-effector velocity
+
+% Specify the Jacobian term for the configuration
+J = geometricJacobian(kinova,q_rand,'EndEffector_Link');
+J_transpose = J';
+% End-effector velocity:
+V_ee = [0; 0; 0; 0.02; 0.01; 0.03];
+
+%Joint velocity
+q_dot = J_transpose * V_ee;
+
+% Velocity product: computes the joint torques required to cancel the forces 
+% induced by the specified joint velocities under a certain joint configuration. 
+vtau = velocityProduct(kinova, q_rand, q_dot);
+
+% Compute the total joint torques given the end-effector velocity above
+tau_2 = vtau + gtau
+
+% Dynamics function
+%jointTorq = inverseDynamics(robot,configuration,jointVel,jointAccel,fext)
+tau_2_func = inverseDynamics(kinova, q_rand, q_dot)
+
+%% Part 3: Consider joint acceleration and external forces
+% External forces: composes external forces matrrix, when applying a force
+%wrench [Tx Ty Tz Fx Fy Fz] to a robot body in a certain configuration
+
+wrench = [0 2 3 0 0 0];
+fext1 = externalForce(kinova,'Wrist1_Link',wrench, q_rand); % external forces on the wrist link 
+fext2 = externalForce(kinova,'EndEffector_Link',wrench, q_rand); %external forces on the end-effector
+
+fext = fext1+fext2;
+
+% Specify the Jacobian term for the wrist link 
+J2 = geometricJacobian(kinova,q_rand,'Wrist1_Link');
+J2_transpose = J2';
+
+% Joint acceleration
+q_ddot = [0; 0; 0; 0.01; 0.05; 0; 0.08];
+
+% Mass matrix: joint-based mass matrix of the robot in the specified
+%configuration
+mass = massMatrix(kinova, q_rand);
+
+% Compute the total joint torques given all the condition above
+tau3 = mass * q_ddot + vtau + gtau - J2_transpose * fext(:,5) - J_transpose * fext(:,8)
+
+% Dynamics function
+%jointTorq = inverseDynamics(robot,configuration,jointVel,jointAccel,fext)
+tau_3_func = inverseDynamics(kinova,q_rand,q_dot,q_ddot,fext)
+
+
+
+
+
+
+
+
