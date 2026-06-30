@@ -1,0 +1,69 @@
+%Practical 2 - Robot Inverse Kinematics - Zachary Earl
+
+clear all, close all, clc
+
+%% Part 1: Load the robot designed in Practical 1
+
+load('robot.mat');
+
+%Verify that the robot was built correctly
+showdetails(kinova)
+figure(Name="Kinova")
+show(kinova);
+title('a1886219')
+axis([-0.5,0.5,-0.5,0.5,0,1.5])
+axis on
+
+
+
+%% Part 2: Create IK solver
+
+ik = inverseKinematics('RigidBodyTree',kinova);
+
+%Solver parameters:
+%Specify End-effector position, using the random configuration from the
+%manipulator
+
+randConfig = kinova.randomConfiguration; % The randomConfiguration command generate a random set of joint angle according to the robot specified
+tform = getTransform(kinova,randConfig,'end_eff','base'); %Get the transformation matrix from base to end-eff for this config
+
+%Weights and Initial guess
+weights = [0.25 0.25 0.25 0.1 0.1 0.1];
+initialguess = kinova.homeConfiguration;
+
+%Generating solution to the end-effector
+[configSoln,solnInfo] = ik('end_eff',tform,weights,initialguess);
+
+%Plot both solution and original random configuration
+figure(Name="Kinova Random Config")
+show(kinova,randConfig)
+title('Random Configuration')
+axis([-0.5,0.5,-0.5,0.5,0,1])
+axis on
+
+figure(Name="Kinova Config Solution")
+show(kinova,configSoln)
+title('Configuration Solution')
+axis([-0.5,0.5,-0.5,0.5,0,1])
+axis on
+
+
+%% Part 3: Using a random end-effector pos
+
+eePosition = [-0.248, 0.0266, 0.5382]; %Input a random end-effector position in Cartesian coordinate
+eePose = trvec2tform(eePosition); %Get the transformation matrix
+
+new_weights= [0.25 0.25 0.25 0.1 0.1 0.1]; %Set new weights 
+
+[configSoln_2,solnInfo_2] = ik('end_eff',eePose,new_weights,initialguess);
+
+%Plot the manipulator configuration to the end-effector pos below
+figure
+plotTransforms(eePosition, tform2quat(eePose)) %This plots the end-effector position
+hold on
+figure(Name="Kinova Config Solution 2")
+show(kinova,configSoln_2)
+title('Configuration Solution 2 (-0.248,0.0266,0.5382)')
+axis([-0.5,0.5,-0.5,0.5,0,1])
+axis on
+
