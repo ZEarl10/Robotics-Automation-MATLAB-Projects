@@ -1,0 +1,198 @@
+%Practical 4 - Robot Trajectory - Zachary Earl
+
+clear all; close all; clc
+%% Part 1: Call robot, data and setup waypoints
+
+% Load your robot and positions data
+kinova = loadrobot('kinovaGen3','DataFormat','row','Gravity',[0 0 -9.80665]);
+
+load gen3positions %These properties are needed to generated waypoints
+
+createWaypointData; %Call the pre-made script containing the desired waypoints
+
+% Show the manipulator in home position
+figure
+show(kinova,jointAnglesHome') %Home config variable is loaded via gen3positions
+axis([-0.5,1,-0.6,0.6,0,1])
+hold on
+
+%Plot the waypoints here
+plot3(waypoints(1,:),waypoints(2,:),waypoints(3,:),'bo:');
+title('a1886219-Trajectory Waypoints'); 
+xlabel('X [m]');
+ylabel('Y [m]');
+zlabel('Z [m]');
+grid on
+view([45 45]);
+
+%% Part 2: Define IK solver
+% Use these parameters to solve for ik
+ik = inverseKinematics('RigidBodyTree',kinova);
+ikWeights = [1 1 1 1 1 1];
+ikInitGuess = jointAnglesHome';
+eeName = 'EndEffector_Link'; 
+
+% Sample time
+ts = 0.02;
+%Trajectory time matrix
+trajTimes = 0:ts:waypointTimes(end);
+
+% Initialize matrices for plots
+qTask = zeros(numJoints,numel(trajTimes)); % Derived joint angles in task space trajectory
+posJoint = zeros(3,numel(trajTimes)); % Derived end effector positions in joint space trajectory
+
+%% Part 3: Create and evaluate a task space trajectory
+% Limit the initial guess to 2*pi
+ikInitGuess = jointAnglesHome';
+ikInitGuess(ikInitGuess > pi) = ikInitGuess(ikInitGuess > pi) - 2*pi;
+ikInitGuess(ikInitGuess < -pi) = ikInitGuess(ikInitGuess < -pi) + 2*pi;
+
+disp('Running task space trajectory generation and evaluation...')
+% Start timer
+tic;
+
+% Trajectory generation
+[posTask,velTask,accelTask] = trapveltraj(waypoints, numel(trajTimes), ... 
+    'AccelTime',repmat(waypointAccelTimes,[3 1]), ...
+    'EndTime',repmat(diff(waypointTimes),[3 1]));
+
+% Joint Configuration for the trajectory (solve ik for all points on
+% trajectory)
+for idx = 1:length(trajTimes) 
+    % Solve IK
+    tgtPose = trvec2tform(posTask(:,idx)'); %Convert to homogenous transformation matrix
+
+    [config,info] = ik(eeName,tgtPose,ikWeights,ikInitGuess);
+
+    %update initial guess
+    ikInitGuess = config; 
+    %save joint config
+    qTask(:,idx) = config;
+end
+
+%Stop timer
+taskTime = toc;
+disp(['Task space trajectory time : ' num2str(taskTime) ' s']);
+
+
+%% Part 4: Create and evaluate a joint space trajectory
+ikInitGuess = jointAnglesHome';
+ikInitGuess(ikInitGuess > pi) = ikInitGuess(ikInitGuess > pi) - 2*pi;
+ikInitGuess(ikInitGuess < -pi) = ikInitGuess(ikInitGuess < -pi) + 2*pi;
+
+disp('Running joint space trajectory generation and evaluation...')
+tic;
+
+% Solve IK for all waypoints
+numWaypoints = size(waypoints,2); %number of waypoints
+numJoints = numel(kinova.homeConfiguration); %number of joints
+jointWaypoints = zeros(numJoints,numWaypoints); 
+
+for idx = 1:numWaypoints
+    tgtPose = trvec2tform(waypoints(:,idx)');
+
+    [config,info] = ik(eeName,tgtPose,ikWeights,ikInitGuess);
+
+    ikInitGuess = config;
+    jointWaypoints(:,idx) = config';    
+end
+
+% Trajectory Generation
+[qJoint,qdJoint,qddJoint] = trapveltraj(jointWaypoints, numel(trajTimes), ...
+    'AccelTime',repmat(waypointAccelTimes,[numJoints 1]), ... 
+    'EndTime',repmat(diff(waypointTimes),[numJoints 1]));
+
+% Trajectory evaluation (only needed to find end effector position)
+for idx = 1:numel(trajTimes)  
+    eeTform = getTransform(kinova,qJoint(:,idx)',eeName); 
+    posJoint(:,idx) = tform2trvec(eeTform)'; 
+end
+
+taskTime = toc;
+disp(['Task space trajectory time : ' num2str(taskTime) ' s']);
+
+%% Part 5: Create comparison plots
+% Compare trajectories in Cartesian space
+
+figure
+show(kinova,jointAnglesHome')
+axis([-0.5,1,-0.6,0.6,0,1])
+hold on
+p1 =plot3(posTask(1,:),posTask(2,:),posTask(3,:),'b-','DisplayName','Task Space Trajectory');
+p2 =plot3(posJoint(1,:),posJoint(2,:),posJoint(3,:),'r--','DisplayName','Joint Space Trajectory');
+p3 =plot3(waypoints(1,:),waypoints(2,:),waypoints(3,:),'ko','LineWidth',2,'DisplayName','Waypoints');
+title('a1886219 - Trajectory Comparison'); 
+xlabel('X [m]');
+ylabel('Y [m]');
+zlabel('Z [m]');
+legend([p1 p2 p3],{'Task Space Trajectory', 'Joint Space Trajectory' ,'Waypoints'} )
+
+grid on
+view([45 45]);
+
+%% Part 6: Plot Joint trajectory
+figure
+% Compare joint angles
+% Plot each joint trajectory
+for idx = 1:numJoints
+    subplot(7,1,idx), hold on
+    plot(trajTimes,qTask(idx,:),'b-');
+    plot(trajTimes,qJoint(idx,:),'r-');
+    for wIdx = 1:numWaypoints
+       xline(waypointTimes(wIdx),'k--'); 
+    end
+    title(['a1886219 - Joint ' num2str(idx) ' Trajectory']); 
+    xlabel('Time [s]');
+    ylabel('Joint Angle [rad]');
+    legend('Task Space Trajectory','Joint Space Trajectory');
+end
+
+
+%% Part 7: Visualize Joint Space Trajectory
+% Generate smooth trajectory
+framerate = 30;
+r = rateControl(framerate);
+
+
+figure
+show(kinova,jointAnglesHome')
+hold on
+p = plot3(posJoint(1,1),posJoint(2,1),posJoint(3,1));
+axis([-0.5,1.5,-1,1.5,0,1])
+
+grid on
+title('Joint Space Trajectory')
+for n = 1:size(qJoint,2)
+    show(kinova, qJoint(:,n)','PreservePlot', false);
+    
+    p.XData(n) = posJoint(1,n);
+    p.YData(n) = posJoint(2,n);
+    p.ZData(n) = posJoint(3,n);
+     
+    waitfor(r);
+end
+
+%% Part 8: Visualize Task Space Trajectory
+% Generate smooth trajectory
+framerate = 60;
+r = rateControl(framerate);
+
+figure
+show(kinova,jointAnglesHome')
+hold on
+p = plot3(posJoint(1,1),posJoint(2,1),posJoint(3,1));
+axis([-0.5,1.5,-1,1.5,0,1])
+
+grid on
+title('Task Space Trajectory')
+for n = 1:size(qJoint,2)
+    show(kinova, qTask(:,n)','PreservePlot', false);
+    
+    p.XData(n) = posTask(1,n);
+    p.YData(n) = posTask(2,n);
+    p.ZData(n) = posTask(3,n);
+    
+    waitfor(r);
+end
+
+
