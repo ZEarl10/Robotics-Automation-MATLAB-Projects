@@ -1,0 +1,131 @@
+%Practical 1 - Robot Forward Kinematics - Zachary Earl
+
+clear all; clc; close all;
+
+%% Part 1: Create Kinova Gen 3 DH table:
+% a_i-1, alpha_i-1, d_i, theta_i
+DH_Kinova=[0, pi, -(0.1564+0.1284), 0; %Frame1
+           0, pi/2, -(0.0054+0.0064), 0; %Frame2
+           0, 3*pi/2, -(0.2104+0.2104), 0; %Frame3
+           0, pi/2, -(0.0064+0.0064), 0; %Frame4
+           0, 3*pi/2, -(0.2084+0.1059), 0; %Frame5
+           0, pi/2, 0, 0; %Frame6
+           0, 3*pi/2, -(0.1059), 0; %Frame7
+           0, pi, (0.0615), 0;];%Interface module
+
+
+%% Part 2: Create rigid body tree to buid the robot
+%Specify robot name and create the rigid body
+kinova = rigidBodyTree;
+
+%Create first link and joint
+link1 =  rigidBody('link1');
+joint1 = rigidBodyJoint('joint1','revolute');
+
+%Specify link-to-link transformation
+setFixedTransform(joint1,DH_Kinova(1,:),'mdh');
+link1.Joint = joint1;
+
+%Attach first link to the base frame of the robot
+addBody(kinova,link1,'base')
+
+%Create second link and joint
+link2 =  rigidBody('link2');
+joint2 = rigidBodyJoint('joint2','revolute');
+
+%Specify link-to-link transformation
+setFixedTransform(joint2,DH_Kinova(2,:),'mdh');
+link2.Joint = joint2;
+
+%Attach second link to the first link of the robot
+addBody(kinova,link2,'link1')
+
+link3 =  rigidBody('link3');
+joint3 = rigidBodyJoint('joint3','revolute');
+
+setFixedTransform(joint3,DH_Kinova(3,:),'mdh');
+link3.Joint = joint3;
+
+addBody(kinova,link3,'link2')
+
+link4 =  rigidBody('link4');
+joint4 = rigidBodyJoint('joint4','revolute');
+
+setFixedTransform(joint4,DH_Kinova(4,:),'mdh');
+link4.Joint = joint4;
+
+addBody(kinova,link4,'link3')
+
+link5 =  rigidBody('link5');
+joint5 = rigidBodyJoint('joint5','revolute');
+
+setFixedTransform(joint5,DH_Kinova(5,:),'mdh');
+link5.Joint = joint5;
+
+addBody(kinova,link5,'link4')
+
+link6 =  rigidBody('link6');
+joint6 = rigidBodyJoint('joint6','revolute');
+
+setFixedTransform(joint6,DH_Kinova(6,:),'mdh');
+link6.Joint = joint6;
+
+addBody(kinova,link6,'link5')
+
+link7 =  rigidBody('link7');
+joint7 = rigidBodyJoint('joint7','revolute');
+
+setFixedTransform(joint7,DH_Kinova(7,:),'mdh');
+link7.Joint = joint7;
+
+addBody(kinova,link7,'link6')
+
+
+
+%Create the end-effector
+end_eff =  rigidBody('end_eff');
+end_joint = rigidBodyJoint('end_joint','fixed');
+
+setFixedTransform(end_joint,DH_Kinova(8,:),'mdh');
+end_eff.Joint = end_joint;
+
+addBody(kinova,end_eff,'link7')
+
+%Show manipulator details 
+showdetails(kinova)
+
+%Plot the manipulator
+figure(Name="Kinova Gen 3 ")
+show(kinova);
+title('Kinova Gen 3 - a1886219')
+axis([-0.5,0.5,-0.5,0.5,0,1.5])
+axis on
+
+%% Part 3: Verify that the robot was built correctly
+%Set Manipulator configuration
+config = homeConfiguration(kinova);
+desired_config = [0 pi/4 0 pi/3 0 pi/3 0]; %Set desired configuration
+
+for i = 1:length(config)
+    config(i).JointPosition = desired_config(i);
+end
+
+figure(Name="Kinova Desired Config")
+show(kinova, config)
+title('Kinova Desired Config - a1886219')
+axis([-0.5,1.5,-0.5,1.0,0,1.5]);
+axis on
+
+%Get the transformation matrix from base to end-eff for this config
+transform = getTransform(kinova,config,'end_eff','base');
+
+%% Save the manipulator for next lab
+% Create a MATLAB mat file called robot.mat tho save
+% manipulator details
+save('robot.mat','kinova')
+
+
+
+
+             
+
